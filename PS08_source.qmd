@@ -1,6 +1,6 @@
 ---
 title: "Problem Set 08"
-author: "Your Name"
+author: "Thomas Kopchik"
 date: last-modified
 date-format: "[Last modified on] MMMM DD, YYYY HH:mm:ss zzz"
 format: 
@@ -99,7 +99,7 @@ How many rows does `boot_samp_1000` have? **Why?**
 :::
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 1 Answers"}
-* Delete this and put your text answer here.
+* `boot_samp_1000` would have 100,000 rows as it is comprised of 1,000 resamples of size 100.
 :::
 
 ## Step 2: Calculate the Bootstrap Statistic
@@ -174,7 +174,7 @@ How many values of the bootstrap statistic `stat` are there in the object `boot_
 :::
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 2 Answers"}
-* Delete this and put your text answer here.
+* There are 1000 values of the bootstrap statistic in `boot_distrib_tv` because the mean is taken for each sample.
 :::
 
 ## Visualizing the Bootstrap Distribution
@@ -331,15 +331,18 @@ boot_dist_tv_infer |> visualize() +
 ::: {.callout-note icon="false" title="Problem 3"}
 -   **If** we calculated a **90% bootstrap percentile** confidence interval for the mean of `tvhours` using this same bootstrap resample (`boot_dist_tv_infer`) and the percentile method, roughly how many of the 1000 values of `tv_mean` would fall between the `lower_ci` and the `upper_ci`?
 
--   Programatically count the number of values that actually fall between the computed `lower_ci` and the `upper_ci`.
+-   Programmatically count the number of values that actually fall between the computed `lower_ci` and the `upper_ci`.
 :::
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 3 Answers"}
-* Delete this and put your text answer here.
+* Roughly 900 means should fall between the bounds.
 
 ```{r}
-# Type your code and comments below
+total <- boot_dist_tv_infer |>
+  filter(stat < quantile(stat, 0.95) & stat > quantile(stat, 0.05)) |>
+  summarize(count = n())
 
+total
 ```
 :::
 
@@ -349,11 +352,14 @@ Use the bootstrap resampling distribution for `tvhours` generated using the infe
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 4 Answers"}
 ```{r}
-# Type your code and comments inside the code chunk
+bpci_tv_99 <- boot_dist_tv_infer |>
+  summarize(lower_ci = quantile(stat, 0.005),
+            upper_ci = quantile(stat, 0.995))
 
+kable(bpci_tv_99)
 ```
 
-* Delete this and put your text answer here.
+* The results suggest 99% confidence in the true mean hours of TV watched being between `r round(bpci_tv_99$lower_ci, digits = 3)` hours and `r round(bpci_tv_99$upper_ci, digits = 3)` hours.
 :::
 
 ::: {.callout-note icon="false" title="Problem 5"}
@@ -361,7 +367,7 @@ Which confidence interval is **WIDER**: the 95% confidence interval or the 99% c
 :::
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 5 Answers"}
-* Delete this and put your text answer here.
+* The 99% confidence interval is wider than the 95% confidence interval. This makes sense because the likelihood for the mean to fall within the interval is higher; that would imply a large range of values for the true mean to fall into.
 :::
 
 ::: {.callout-note icon="false" title="Problem 6"}
@@ -372,8 +378,20 @@ Which confidence interval is **WIDER**: the 95% confidence interval or the 99% c
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 6 Answers"}
 ```{r}
-# Type your code and comments inside the code chunk
+set.seed(21)
 
+boot_dist_age1 <- boot_samp_1000 |>
+  group_by(replicate) |>
+  summarize(stat = mean(age))
+
+kable(head(boot_dist_age1))
+
+boot_dist_age2 <- gss_sample |>
+  specify(response = age) |>
+  generate(reps = 1000, type = "bootstrap") |>
+  calculate(stat = "mean")
+
+kable(head(boot_dist_age2))
 ```
 :::
 
@@ -383,13 +401,25 @@ Calculate 95% confidence intervals for the population mean respondent `age` $\mu
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 7 Answers"}
 ```{r}
-# Type your code and comments inside the code chunk
+xbar_age <- mean(gss_sample$age)
+rule_age1 <- boot_dist_age1 |>
+  summarize(se = sd(stat),
+            lower_ci = xbar_age - (qnorm(0.975) * se),
+            upper_ci = xbar_age + (qnorm(0.975) * se))
 
+kable(rule_age1)
+
+rule_age2 <- boot_dist_age2 |>
+  get_confidence_interval(level = 0.95,
+                          type = "se",
+                          point_estimate = xbar_age)
+
+kable(rule_age2)
 ```
 
-* Delete this and put your text answer here.
+* The interval for `boot_dist_age1` has a lower bound of `r round(rule_age1$lower_ci, 4)` years and an upper bound of `r round(rule_age1$upper_ci, 4)` years.
 
-* Delete this and put your text answer here.
+* The interval for `boot_dist_age1` has a lower bound of `r round(rule_age2$lower_ci, 4)` years and an upper bound of `r round(rule_age2$upper_ci, 4)` years.
 :::
 
 ::: {.callout-note icon="false" title="Problem 8"}
@@ -398,11 +428,14 @@ Calculate a 95% bootstrap percentile confidence interval for the population mean
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 8 Answers"}
 ```{r}
-# Type your code and comments inside the code chunk
+percentile_age <- boot_dist_age1 |> 
+  summarize(lower_ci = quantile(stat, 0.025), 
+            upper_ci = quantile(stat, 0.975))
 
+kable(percentile_age)
 ```
 
-* Delete this and put your text answer here.
+* The interval for `boot_dist_age1` has a lower bound of `r round(percentile_age$lower_ci, 4)` years and an upper bound of `r round(percentile_age$upper_ci, 4)` years
 :::
 
 ::: {.callout-note icon="false" title="Problem 9"}
@@ -410,7 +443,7 @@ How do the 95% confidence intervals you calculated in 7 and 8 compare? i.e. are 
 :::
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 9 Answers"}
-* Delete this and put your text answer here.
+* The values are very similar. They only deviate by decimal amounts.
 :::
 
 ::: {.callout-note icon="false" title="Problem 10"}
@@ -419,11 +452,15 @@ Use the **bootstrap resampling distribution** for the sample mean respondent `ag
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 10 Answers"}
 ```{r}
-# Type your code and comments inside the code chunk
+percentile_age80 <- boot_dist_age1 |> 
+  summarize(lower_ci = quantile(stat, 0.1), 
+            upper_ci = quantile(stat, 0.9))
+
+kable(percentile_age)
 
 ```
 
-* Delete this and put your text answer here.
+* The interval for `boot_dist_age1` has a lower bound of `r round(percentile_age80$lower_ci, 4)` years and an upper bound of `r round(percentile_age80$upper_ci, 4)` years.
 :::
 
 # Bootstrap Sampling Distribution & Confidence Intervals with Categorical Variables
@@ -517,34 +554,63 @@ Calculate a 95% CI for the **population proportion** of respondents $p$ who iden
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 11 Answers"}
 ```{r}
-# Type your code and comments inside the code chunk
+set.seed(43)
+gss_sample |>
+  specify(response = race, success = "White") |>
+  generate(reps = 1000, type = "bootstrap") |>
+  calculate(stat = "prop") -> boot_dist_white
 
+kable(head(boot_dist_white))
+
+boot_distrib_white_samp <- boot_samp_1000 |> 
+  group_by(replicate) |> 
+  summarize(n = n(), 
+            POC_count = sum(race == "White"), 
+            boot_stat = POC_count/n,
+            phat_boot = mean(race == "White"))
+kable(head(boot_distrib_white_samp))
 ```
 
 ```{r}
-# Type your code and comments inside the code chunk
+phat_w <- mean(gss_sample$race=="White")
+
 # percentile method
-
+boot_dist_white |>
+  get_confidence_interval(level = 0.95, 
+                          type = "percentile", 
+                          point_estimate = phat) -> bdwp
+kable(bdwp)
 # 95% rule
-
+boot_dist_white |> 
+  get_confidence_interval(level = 0.95, 
+                          type = "se", 
+                          point_estimate = phat) -> bdw95 
+kable(bdw95)
 ```
 
-* Delete this and put your text answer here.
+* The percentile interval for `boot_dist_white` has a lower bound of `r round(bdwp$lower_ci, 3)` and an upper bound of `r round(bdwp$upper_ci, 3)`.
 
-* Delete this and put your text answer here.
+* The 95% rule interval for `boot_dist_white` has a lower bound of `r round(bdw95$lower_ci, 3)` and an upper bound of `r round(bdw95$upper_ci, 3)`.
 
 ```{r}
-# Type your code and comments inside the code chunk
-
 # percentile method
 
+boot_distrib_white_samp |> 
+  summarize(lower_ci = quantile(boot_stat, 0.025), 
+            upper_ci = quantile(boot_stat, 0.975)) -> bdwsp
+kable(bdwsp)
 # 95% rule
 
+boot_distrib_white_samp |> 
+  summarize(se = sd(boot_stat), 
+            lower_ci = phat_w - (qnorm(0.975) * se),
+            upper_ci = phat_w + (qnorm(0.975) * se)) -> bdws95
+kable(bdws95)
 ```
 
-* Delete this and put your text answer here.
+* The percentile interval for `boot_distrib_white_samp` has a lower bound of `r round(bdwsp$lower_ci, 3)` and an upper bound of `r round(bdwsp$upper_ci, 3)`.
 
-* Delete this and put your text answer here.
+* The 95% rule interval for `boot_distrib_white_samp` has a lower bound of `r round(bdws95$lower_ci, 3)` and an upper bound of `r round(bdws95$upper_ci, 3)`.
 :::
 
 # Confidence Intervals Based on the Theoretical Normal Distribution
@@ -593,9 +659,9 @@ When you are done, make sure all the `|` in the table still line up so your resu
 ::: {.callout-important icon="false" collapse="false" title="Problem 12 Answers"}
 | CI construction method          | lower value | upper value |
 |---------------------------------|-------------|-------------|
-| Using boostrap: 95% rule        | X           | Y           |
-| Using boostrap: percentile rule | A           | B           |
-| Using mathematical formula      | P           | Q           |
+| Using bootstrap: 95% rule       | 2.43        | 3.85        |
+| Using bootstrap: percentile rule| 2.48	      | 3.92        | 
+| Using mathematical formula      | 2.44	      | 3.84        |
 :::
 
 ::: {.callout-note icon="false" title="Problem 13"}
@@ -603,7 +669,7 @@ When you are done, make sure all the `|` in the table still line up so your resu
 :::
 
 ::: {.callout-important icon="false" collapse="false" title="Problem 13 Answers"}
-* Delete this and put your text answer here.
+* I would say the three confidence intervals are very similar.
 :::
 
 # Turning in Your Work
